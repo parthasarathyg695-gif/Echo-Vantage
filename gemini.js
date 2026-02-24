@@ -8,7 +8,7 @@ function getClient() {
     return genAI;
 }
 
-const MODEL = 'gemini-2.5-flash-lite';
+const MODEL = 'gemini-1.5-flash-latest';
 const TIMEOUT_MS = 25000;
 
 // Wrap a promise with a hard timeout
@@ -74,16 +74,16 @@ async function generateAnswer(cleanQuestion, profile = {}, jobDescription = '', 
     const { name = 'the candidate', target_role = '', tech_stack = [], projects = '', years_experience = '' } = profile;
     const skillsStr = Array.isArray(tech_stack) ? tech_stack.join(', ') : (tech_stack || '');
 
-    const historyStr = history.map(h => `${h.role === 'user' ? 'Question' : 'Answer'}: ${h.text}`).join('\n\n');
+    const historyStr = history.map(h => `${h.role === 'user' ? 'Interviewer' : 'Assistant'}: ${h.text}`).join('\n\n');
 
     const prompt = `LAYER 1: SYSTEM ROLE
-You are a senior staff-level interview coach. You provide practical, technical, and confident answers that sound like a real engineer with production experience. Avoid textbook genericism.
+You are a senior staff-level expert practitioner. You provide short, punchy, and domain-precise answers across any field (Engineering, Product, HR, Finance, etc.). Your goal is CLARITY over COMPLETENESS.
 
 LAYER 2: CONTEXT
 CANDIDATE: ${name} (${years_experience} years exp)
 ROLE: ${target_role}
-TECH: ${skillsStr}
-PROJECTS: ${projects}
+TECH/SKILLS: ${skillsStr}
+EXPERIENCE/PROJECTS: ${projects}
 JOB DESCRIPTION: ${jobDescription || 'Not provided'}
 
 CONVERSATION HISTORY:
@@ -92,18 +92,19 @@ ${historyStr || 'None (First question)'}
 NEW QUESTION: "${cleanQuestion}"
 
 LAYER 3: OUTPUT RULES
-1. SILENT REASONING: First silently analyze: Question type? Concept tested? Relevant candidate experience? (Do not output this).
-2. HALLUCINATION PROTECTION: If profile lacks a concrete example, say "In my experience [tech area]..." Do NOT invent fake metrics or companies.
-3. CONTENT: Use first person. Include at least ONE specific example and ONE trade-off. 10-20 sentences.
-4. FORMAT: Return ONLY JSON. Value "full_answer" MUST be in MARKDOWN.
+1. SILENT REASONING: Analyze the domain (Tech? Leadership? Strategy?). Identify core concepts and common misperceptions.
+2. BREVITY: 5-10 sentences. Start with the headline answer.
+3. ZERO HALLUCINATION: STRICT RULE: Do not invent candidate achievements, specific metrics, or company names not in the context. If data is missing, use practitioner wisdom: "In my experience with [topic]..." or "Standard practice is...".
+4. PRECISION: Use exact domain terminology. (e.g., in Tech: Runtime vs Framework; in HR: Policy vs Procedure; in Product: Outcome vs Output).
+5. STYLE: First person, professional, senior practitioner tone. Include one real-world principle and one trade-off/constraint.
 
-Shape:
+Return ONLY JSON:
 {
-  "key_points": ["Insight 1", "Trade-off 2", "Production insight 3"],
+  "key_points": ["Punchy insight 1", "Technical/Domain trade-off 2", "Production/Reality insight 3"],
   "full_answer": "...", 
-  "short_version": "One powerful headline sentence.",
-  "followup_topics": ["Topic 1", "Topic 2"],
-  "interviewer_intent": "What is being tested?"
+  "short_version": "One high-impact headline sentence.",
+  "followup_topics": ["Deep-dive topic 1", "Deep-dive topic 2"],
+  "interviewer_intent": "What is the interviewer actually seeking to validate?"
 }`;
 
     return callGemini(prompt, { temperature: 0.4 });
@@ -113,32 +114,31 @@ Shape:
 async function* streamAnswer(cleanQuestion, profile = {}, jobDescription = '', history = []) {
     const { name = 'the candidate', target_role = '', tech_stack = [], projects = '', years_experience = '' } = profile;
     const skillsStr = Array.isArray(tech_stack) ? tech_stack.join(', ') : (tech_stack || '');
-    const historyStr = history.map(h => `${h.role === 'user' ? 'Question' : 'Answer'}: ${h.text}`).join('\n\n');
+    const historyStr = history.map(h => `${h.role === 'user' ? 'Interviewer' : 'Assistant'}: ${h.text}`).join('\n\n');
 
-    const prompt = `LAYER 1: SYSTEM ROLE
-You are a senior staff-level interview coach. Generate an expert-level answer in MARKDOWN.
+    const prompt = `Generate a short (5-10 sentences), expert interview answer in MARKDOWN. 
+IMPORTANT: Wrap ALL code in \`\`\`language code blocks.
 
-LAYER 2: CONTEXT
+CONTEXT:
 CANDIDATE: ${name}
 ROLE: ${target_role}
 TECH: ${skillsStr}
 HISTORY: ${historyStr || 'None'}
 QUESTION: "${cleanQuestion}"
 
-LAYER 3: OUTPUT RULES
-1. SILENT REASONING: Analyze silently before answering.
-2. HALLUCINATION PROTECTION: Do not invent fake metrics.
-3. STYLE: First person, professional, senior engineer tone.
-4. CONTENT: Include one real example and one trade-off.
+RULES:
+1. Be technically precise.
+2. Use FIRST PERSON.
+3. NO HALLUCINATION.
+4. Start with the answer immediately.
 
 ANSWER:`;
 
     const model = getClient().getGenerativeModel({
         model: MODEL,
         generationConfig: {
-            temperature: 0.4,
-            topP: 0.9,
-            topK: 40
+            temperature: 0.5,
+            topP: 0.8
         }
     });
     const result = await model.generateContentStream(prompt);
