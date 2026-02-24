@@ -8,12 +8,29 @@ const router = express.Router();
 // Helper to verify question ownership
 async function verifyQuestionOwnership(questionId, userId) {
     const res = await query(
-        `SELECT q.id FROM questions q 
-     JOIN sessions s ON s.id = q.session_id 
-     WHERE q.id = $1 AND s.user_id = $2`,
+        `SELECT q.id, q.session_id FROM questions q 
+      JOIN sessions s ON s.id = q.session_id 
+      WHERE q.id = $1 AND s.user_id = $2`,
         [questionId, userId]
     );
-    return res.rows.length > 0;
+    return res.rows[0];
+}
+
+// Helper to fetch session history for context
+async function getSessionHistory(sessionId) {
+    const res = await query(
+        `SELECT q.cleaned_question as question, a.gemini_output as answer
+     FROM questions q
+     LEFT JOIN answers a ON a.question_id = q.id
+     WHERE q.session_id = $1 AND a.status = 'done'
+     ORDER BY q.created_at DESC LIMIT 5`,
+        [sessionId]
+    );
+    // Reverse to get chronological order: [oldest, ..., newest]
+    return res.rows.reverse().map(r => ([
+        { role: 'user', text: r.question },
+        { role: 'model', text: r.answer }
+    ])).flat();
 }
 
 // ── POST /api/answers ──────────────────────────────────────────────────────
@@ -24,9 +41,11 @@ router.post('/', auth, async (req, res) => {
     }
 
     // Security check
-    if (!await verifyQuestionOwnership(question_id, req.user.id)) {
+    const questionData = await verifyQuestionOwnership(question_id, req.user.id);
+    if (!questionData) {
         return res.status(403).json({ error: 'Forbidden' });
     }
+    const sessionId = questionData.session_id;
 
     let answerId;
     try {
@@ -45,14 +64,15 @@ router.post('/', auth, async (req, res) => {
     // Async generation
     setImmediate(async () => {
         try {
-            const [profileResult, interviewResult] = await Promise.all([
+            const [profileResult, interviewResult, history] = await Promise.all([
                 query('SELECT * FROM profiles WHERE user_id = $1', [req.user.id]),
-                query('SELECT job_description FROM interviews WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [req.user.id])
+                query('SELECT job_description FROM interviews WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [req.user.id]),
+                getSessionHistory(sessionId)
             ]);
             const profile = profileResult.rows[0] || {};
             const jobDescription = interviewResult.rows[0]?.job_description || '';
 
-            const { parsed, raw } = await generateAnswer(cleaned_question, profile, jobDescription);
+            const { parsed, raw } = await generateAnswer(cleaned_question, profile, jobDescription, history);
 
             await query(
                 `UPDATE answers
@@ -114,9 +134,10 @@ router.get('/stream/:id', auth, async (req, res) => {
         res.flushHeaders();
 
         const { cleaned_question } = result.rows[0];
-        const [profileRes, interviewRes] = await Promise.all([
+        const [profileRes, interviewRes, history] = await Promise.all([
             query('SELECT * FROM profiles WHERE user_id = $1', [req.user.id]),
-            query('SELECT job_description FROM interviews WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [req.user.id])
+            query('SELECT job_description FROM interviews WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [req.user.id]),
+            getSessionHistory(sessionId).catch(() => []) // Fallback in case history fetch fails
         ]);
         const profile = profileRes.rows[0] || {};
         const jobDescription = interviewRes.rows[0]?.job_description || '';
@@ -124,7 +145,7 @@ router.get('/stream/:id', auth, async (req, res) => {
         const { streamAnswer } = require('../gemini');
         let fullText = '';
 
-        for await (const chunk of streamAnswer(cleaned_question, profile, jobDescription)) {
+        for await (const chunk of streamAnswer(cleaned_question, profile, jobDescription, history)) {
             fullText += chunk;
             res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
         }
