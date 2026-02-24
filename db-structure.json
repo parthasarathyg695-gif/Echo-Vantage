@@ -1,0 +1,212 @@
+{
+  "profiles": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "name",
+      "data_type": "text"
+    },
+    {
+      "column_name": "target_role",
+      "data_type": "text"
+    },
+    {
+      "column_name": "years_exp",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "tech_stack",
+      "data_type": "ARRAY"
+    },
+    {
+      "column_name": "skills",
+      "data_type": "jsonb"
+    },
+    {
+      "column_name": "projects",
+      "data_type": "text"
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "column_name": "resume_text",
+      "data_type": "text"
+    },
+    {
+      "column_name": "jd_text",
+      "data_type": "text"
+    },
+    {
+      "column_name": "user_id",
+      "data_type": "integer"
+    }
+  ],
+  "questions": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "session_id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "transcript",
+      "data_type": "text"
+    },
+    {
+      "column_name": "cleaned_question",
+      "data_type": "text"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    }
+  ],
+  "answers": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "question_id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "gemini_output",
+      "data_type": "text"
+    },
+    {
+      "column_name": "raw_response",
+      "data_type": "text"
+    },
+    {
+      "column_name": "status",
+      "data_type": "text"
+    },
+    {
+      "column_name": "processing_started_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    }
+  ],
+  "orders": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "user_id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "razorpay_order_id",
+      "data_type": "text"
+    },
+    {
+      "column_name": "amount",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "currency",
+      "data_type": "text"
+    },
+    {
+      "column_name": "status",
+      "data_type": "text"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    }
+  ],
+  "users": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "email",
+      "data_type": "text"
+    },
+    {
+      "column_name": "password_hash",
+      "data_type": "text"
+    },
+    {
+      "column_name": "full_name",
+      "data_type": "text"
+    },
+    {
+      "column_name": "credits",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "column_name": "has_seen_onboarding",
+      "data_type": "boolean"
+    },
+    {
+      "column_name": "reset_token",
+      "data_type": "text"
+    },
+    {
+      "column_name": "reset_expires",
+      "data_type": "timestamp with time zone"
+    }
+  ],
+  "resumes": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "user_id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "filename",
+      "data_type": "text"
+    },
+    {
+      "column_name": "content",
+      "data_type": "text"
+    },
+    {
+      "column_name": "is_active",
+      "data_type": "boolean"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    }
+  ],
+  "sessions": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "column_name": "user_id",
+      "data_type": "integer"
+    }
+  ]
+}

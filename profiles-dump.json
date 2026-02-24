@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "name": "Parthasarathy Ganeshprabu",
+    "target_role": "AI Engineer",
+    "years_exp": 1,
+    "tech_stack": [
+      "Python",
+      "FastAPI",
+      "Langchain",
+      "Langraph",
+      "RAG",
+      "LLM",
+      "React",
+      "CNN",
+      "OpenCV",
+      "QLoRA",
+      "Unsloth",
+      "Azure",
+      "IoT"
+    ],
+    "skills": {},
+    "projects": "Developed an AI Tutor using RAG + LLM for personalized learning and an AI Virtual Intern Platform to automate intern management and communication. Also created an AI Visual Agent with multimodal models for visual understanding and object detection, showcasing strong skills in AI development and LLM integration.",
+    "updated_at": "2026-02-23T03:50:56.717Z",
+    "resume_text": "PARTHASARATHY GANESHPRABU\nCuddalore — parthasarathyg693@gmail.com — 7094656709\nLinkedIn — GitHub — Portfolio\nObjective\nMotivated to apply my knowledge and skills in real-world AI and full-stack development environments. Eager\nto gain deeper practical experience through continuous learning and contribute effectively to organizational\ngoals.\nEducation\nM. Kumarasamy College of Engineering, Karur Oct 2022 – Present\nBachelor of Technology in Artificial Intelligence and Machine Learning GPA: 6.7/10.0\nChandy Polytechnic College July 2020 – Mar 2023\nDiploma – Marine Engineering Percentage: 81%\nArea of Interest\n• Machine Learning\n• Backend Development(Fast api)\n• Artificial Intelligence (agentic ai , A2A , Langchain, Langraph)\nSkills\nLanguages: C++, Java, Python, PHP, React\nSoft Skills: Problem Solving, Team Management, Decision Making\nExperience\nAI Trainee – CodeWork (Internship) May 2025 – June 2025\nWorked on AI-driven automation and backend integration projects, gaining experience in collaborative AI\nworkflows, model testing, and real-time application development.\nAI Trainee – (4 Months Experience) Aug 2025 – Dec 2025\nInvolved in advanced AI projects including model fine-tuning, multi-agent RAG-based systems, and docu\u0002mentation using LATEX on Overleaf. Focused on innovation, architecture design, and intelligent automation\nsolutions.\nProjects\nAI Tutor (2025)\nRole: AI Trainee\nDeveloped an AI-based interactive tutor using RAG + LLM architecture for personalized learning assistance.\nIntegrated text understanding, knowledge retrieval, and conversation memory to deliver adaptive teaching\nexperiences.\nAI Virtual Intern Platform (2025)\nRole: AI Trainee\nBuilt a virtual internship management system powered by LLMs to automate intern evaluation, task rec\u0002ommendation, and mentor-intern communication. Integrated intelligent workflow management and analytics\ndashboard.\nAI Visual Agent (2025)\nRole: AI Trainee\nDesigned an AI agent capable of visual understanding through image and video analysis using multimodal\nmodels. Implemented object detection, caption generation, and OCR-based text extraction for interactive\nvisual reasoning.\n1\nAI Virtual Board (2025)\nRole: AI Trainee\nCreated an interactive whiteboard application enhanced with AI for real-time handwriting recognition, diagram\ninterpretation, and idea mapping. Integrated collaborative tools using NLP and vision-based assistance.\nFire Detection System (2025)\nRole: AI Trainee\nDeveloped a CNN-based real-time fire detection system using video feed analysis. Enabled automatic alerting\nthrough IoT integration and OpenCV-based monitoring.\nSmallLM Project (2025)\nRole: AI Trainee\nResearched and trained a lightweight transformer (SmallLM) optimized for 4GB GPUs. Implemented QLoRA\nfine-tuning and Unsloth framework to enhance efficiency in small-scale LLM experiments.\nGreen-Farm: AI-Powered Agricultural Marketplace (Ongoing) 2025\nRole: Full Stack Developer & AI Engineer\nBuilt a farmer-centric marketplace enabling direct produce sales. Integrated AI-based crop quality analysis and\nblockchain-secured UPI payments.\nEarly Diagnosis of Pneumonia Using ML (2024)\nRole: Machine Learning Engineer\nUsed ML algorithms to predict pneumonia onset from medical imaging datasets, enhancing diagnostic accuracy\nand enabling early intervention.\nOnline Social Media Communication Analytics (2023)\nRole: Data Analyst\nAnalyzed social media metrics to optimize engagement and improve digital brand presence.\nAchievements\n• Achieved 1st place in International Yoga Competition at SGS International Yoga Foundation, Bengaluru.\n• Secured 2nd place in Technical Quiz at KGiSL Institute of Technology, Coimbatore.\n• Participated in Hackathon at Oasys Institute of Technology, Trichy.\n• Represented college in All India Inter-University Yoga Team (Kalinga Institute of Industrial Technology,\nBhubaneswar).\nCertifications\n• Microsoft Certified: Azure Fundamentals (AZ-900)\n• NPTEL – The Joy of Computing Using Python\n• NPTEL – Introduction to Industry 4.0 and Industrial Internet of Things\n• Oracle Certified – Generative AI",
+    "jd_text": "for ai engineer",
+    "user_id": null
+  }
+]
