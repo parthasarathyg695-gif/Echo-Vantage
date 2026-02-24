@@ -54,18 +54,11 @@ router.post('/', auth, async (req, res) => {
 
             const { parsed, raw } = await generateAnswer(cleaned_question, profile, jobDescription);
 
-            // Build the display output: explanation + code block if present
-            let displayOutput = parsed.full_answer || '';
-            if (parsed.code) {
-                const lang = parsed.code_language || 'code';
-                displayOutput += `\n\n--- ${lang.toUpperCase()} ---\n${parsed.code}`;
-            }
-
             await query(
                 `UPDATE answers
           SET gemini_output = $1, raw_response = $2, status = 'done'
           WHERE id = $3`,
-                [displayOutput, raw, answerId]
+                [parsed.full_answer || '', raw, answerId]
             );
         } catch (err) {
             console.error('Gemini answer generation failed:', err.message);

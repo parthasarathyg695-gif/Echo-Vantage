@@ -38,33 +38,35 @@ async function callGemini(promptParts) {
 }
 
 // Streaming version for answers
-async function* streamAnswer(cleanQuestion, profile = {}) {
-    const { name = '', target_role = 'Software Engineer', tech_stack = [], projects = '', resume_text = '', jd_text = '' } = profile;
-    const skillsStr = Array.isArray(tech_stack) ? tech_stack.join(', ') : tech_stack;
+async function* streamAnswer(cleanQuestion, profile = {}, jobDescription = '') {
+    const { name = 'the candidate', target_role = '', tech_stack = [], projects = '', years_experience = '' } = profile;
+    const skillsStr = Array.isArray(tech_stack) ? tech_stack.join(', ') : (tech_stack || '');
+    const roleContext = jobDescription
+        ? `targeting a role described in the JD below`
+        : (target_role ? `targeting a ${target_role} role` : '');
 
-    // Use a persona-driven prompt that enforces brevity and directness.
-    // Asking for raw text instead of JSON for better streaming UX.
-    const prompt = `You are an elite Technical Lead and AI Engineer for a ${target_role} position.
-Your goal is to provide deep, high-precision technical answers that would impress reviewers at top-tier labs (like Anthropic, DeepMind, or OpenAI).
+    const prompt = `You are a world-class interview coach generating an expert-level answer for ${name}${roleContext ? `, ${roleContext}` : ''}${years_experience ? ` with ${years_experience} years of experience` : ''}.
 
-CONSTRAINTS:
-1. MAX 3 SENTENCES. Every word must count.
-2. TECHNICAL DEPTH: Do not be vague. If asked about an algorithm, mention the "why" (e.g., PCA maximizes variance, it doesn't separate classes).
-3. STRATEGY: Use a "Precise Concept -> Practical Application -> Nuanced Trade-off" structure.
-4. NO CLICHES: Skip all "That's a great question" or introductory fluff.
-5. FIRST PERSON: Use "I" and "my experience" naturally.
-6. INTRODUCTION: ONLY for "Tell me about yourself", start with "I am ${name}, a ${target_role}...".
-7. TECH CORRECTION: If the QUESTION below looks like it was misheard (e.g., "Gosh in blur"), answer about "Gaussian blur" accurately.
+CANDIDATE: ${name}
+${target_role ? `PROFILE ROLE: ${target_role}` : ''}
+EXPERIENCE: ${years_experience || 'Not specified'} years
+TECH STACK: ${skillsStr || 'Not specified'}
+PROJECTS: ${projects || 'Not specified'}
+${jobDescription ? `\nJOB DESCRIPTION:\n${jobDescription}\n` : ''}
 
-CONTEXT:
-ROLE: ${target_role}
-CORE SKILLS: ${skillsStr}
-FULL RÉSUMÉ/PROJECTS: ${resume_text}
-JOB DESCRIPTION: ${jd_text}
+QUESTION: "${cleanQuestion}"
 
-QUESTION: ${cleanQuestion}
+Generate an EXPERT-LEVEL answer in **MARKDOWN FORMAT**. Use:
+- **Bold** for key terms
+- Bullet points and numbered lists
+- \`inline code\` for technical terms
+- Fenced code blocks (\`\`\`language) for code examples
+- 10-20 sentences, written in FIRST PERSON ("I", "my", "I've built")
+- Sound like a confident senior engineer — NOT a textbook
+- Include specific real-world examples and trade-offs
+- For coding questions: include full working code in fenced code blocks
 
-ANSWER (Expert Level, Direct):`;
+ANSWER:`;
 
     const model = getClient().getGenerativeModel({ model: MODEL });
     const result = await model.generateContentStream(prompt);
@@ -218,11 +220,9 @@ If the question is unintelligible, gibberish, or not a real question, return:
 
 Otherwise return EXACTLY this JSON shape:
 {
-  "key_points": ["Deep insight 1 with specifics", "Technical trade-off or edge case 2", "Production war story or differentiator 3", "Advanced consideration 4"],
-  "full_answer": "The complete, expert-level spoken answer in first person. 10-20 sentences. Deep, specific, impressive. Multiple examples and insights woven together naturally. For coding questions, explain your approach conversationally BEFORE the code.",
-  "code": "If a coding question: include the FULL working code here. Use proper formatting with newlines. If not a coding question: set this to null.",
-  "code_language": "The programming language used (e.g. 'python', 'javascript', 'java'). Set to null if no code.",
-  "short_version": "One powerful sentence — the headline answer if pressed for time.",
+  "key_points": ["Deep insight 1", "Technical trade-off 2", "Production insight 3", "Advanced consideration 4"],
+  "full_answer": "The complete expert-level answer in MARKDOWN FORMAT. Use bold for key terms, bullet points for lists, inline code for technical terms, fenced code blocks with language for code examples, numbered lists for steps. Must be 10-20 sentences, first person, natural and conversational. For coding questions include full working code in a fenced code block.",
+  "short_version": "One powerful sentence — the headline answer.",
   "followup_topics": ["Likely follow-up 1", "Likely follow-up 2", "Deep-dive area 3"],
   "interviewer_intent": "What the interviewer is really testing"
 }`;
