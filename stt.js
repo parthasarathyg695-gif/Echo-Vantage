@@ -40,9 +40,7 @@ function initSTT(server) {
                                 text: "You are a professional transcription engine focused ONLY on English. Do NOT respond or speak. Just listen and transcribe the audio accurately into English text. Even if you hear technical terms like 'computer vision', transcribe them correctly in English."
                             }]
                         },
-                        input_audio_transcription: {
-                            language_code: "en-US"
-                        }
+                        input_audio_transcription: {}
                     }
                 };
 
