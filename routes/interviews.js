@@ -42,13 +42,34 @@ router.get('/', auth, async (req, res) => {
 router.patch('/:id', auth, async (req, res) => {
     try {
         const { status } = req.body;
+        const interviewId = req.params.id;
+        const userId = req.user.id;
+
+        // Fetch current state
+        const currentRes = await query('SELECT status, started_at FROM interviews WHERE id = $1 AND user_id = $2', [interviewId, userId]);
+        if (currentRes.rows.length === 0) return res.status(404).json({ error: 'Interview not found' });
+        const interview = currentRes.rows[0];
+
+        // Logic for credit deduction: if starting for the first time
+        if (status === 'in-progress' && interview.status === 'upcoming') {
+            const userRes = await query('SELECT credits FROM users WHERE id = $1', [userId]);
+            const user = userRes.rows[0];
+            if (user.credits < 1) {
+                return res.status(402).json({ error: 'Insufficient credits' });
+            }
+            // Deduct credit
+            await query('UPDATE users SET credits = credits - 1 WHERE id = $1', [userId]);
+        }
+
         const result = await query(
-            `UPDATE interviews SET status = $1, started_at = CASE WHEN $1 = 'in-progress' THEN NOW() ELSE started_at END,
-             ended_at = CASE WHEN $1 = 'completed' THEN NOW() ELSE ended_at END
+            `UPDATE interviews SET 
+                status = $1, 
+                started_at = CASE WHEN $1 = 'in-progress' AND started_at IS NULL THEN NOW() ELSE started_at END,
+                ended_at = CASE WHEN $1 = 'completed' THEN NOW() ELSE ended_at END
              WHERE id = $2 AND user_id = $3 RETURNING *`,
-            [status, req.params.id, req.user.id]
+            [status, interviewId, userId]
         );
-        if (result.rows.length === 0) return res.status(404).json({ error: 'Interview not found' });
+
         res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
