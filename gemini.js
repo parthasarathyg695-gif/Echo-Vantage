@@ -8,7 +8,7 @@ function getClient() {
     return genAI;
 }
 
-const MODEL = 'gemini-1.5-flash-latest';
+const MODEL = 'gemini-2.5-flash-lite';
 const TIMEOUT_MS = 25000;
 
 // Wrap a promise with a hard timeout

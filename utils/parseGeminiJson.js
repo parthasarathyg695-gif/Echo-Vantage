@@ -20,11 +20,12 @@ class GeminiParseError extends Error {
 
 function stripFences(text) {
     if (!text) return '';
-    // Strip ```json ... ``` or ``` ... ```
-    return text
-        .replace(/^```(?:json)?\s*/im, '')
-        .replace(/\s*```\s*$/im, '')
-        .trim();
+    // Try to extract the first full { ... } or [ ... ] block to ignore conversational filler
+    const jsonMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (jsonMatch) {
+        return jsonMatch[0];
+    }
+    return text.trim();
 }
 
 async function parseGeminiJson(rawText, repromptFn, attempt = 0) {

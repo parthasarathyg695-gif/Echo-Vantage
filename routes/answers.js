@@ -115,7 +115,7 @@ router.get('/stream/:id', auth, async (req, res) => {
 
     try {
         const result = await query(
-            `SELECT a.id, q.cleaned_question 
+            `SELECT a.id, q.cleaned_question, q.session_id 
        FROM answers a 
        JOIN questions q ON q.id = a.question_id 
        JOIN sessions s ON s.id = q.session_id
@@ -133,7 +133,7 @@ router.get('/stream/:id', auth, async (req, res) => {
         res.setHeader('Connection', 'keep-alive');
         res.flushHeaders();
 
-        const { cleaned_question } = result.rows[0];
+        const { cleaned_question, session_id: sessionId } = result.rows[0];
         const [profileRes, interviewRes, history] = await Promise.all([
             query('SELECT * FROM profiles WHERE user_id = $1', [req.user.id]),
             query('SELECT job_description FROM interviews WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [req.user.id]),

@@ -1,143 +1,129 @@
 'use strict';
 const WebSocket = require('ws');
+const speech = require('@google-cloud/speech');
 
 function initSTT(server) {
     const wss = new WebSocket.Server({ server });
+    const speechClient = new speech.SpeechClient();
 
-    wss.on('connection', async (ws) => {
+    wss.on('connection', (ws) => {
         console.log('🎙  Gateway: Client connected');
+        let recognizeStream = null;
+        let isClientConnected = true;
+        let isStarting = false; // Race condition guard
 
-        let geminiWs = null;
-        let isSetup = false;
+        function startStream() {
+            // Guard: prevent double-start from concurrent error+end events
+            if (!isClientConnected || isStarting || recognizeStream) return;
+            isStarting = true;
 
-        const API_KEY = process.env.GEMINI_API_KEY;
-        // v1alpha with snake_case proto fields
-        const GEMINI_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${API_KEY}`;
+            console.log('☁️  Google Cloud STT: Starting stream...');
 
-        function connectToGemini() {
-            console.log('🔗  Gemini Live: Connecting to API...');
-            geminiWs = new WebSocket(GEMINI_URL);
+            const request = {
+                config: {
+                    encoding: 'LINEAR16',
+                    sampleRateHertz: 16000,
+                    languageCode: 'en-US',
+                    // ta-IN removed — corrupts phoneme mapping for English
+                    // model: 'latest_short' is for voice commands. 'latest_long' is for conversational interviews.
+                    model: 'latest_long',
+                    useEnhanced: true,
+                    enableAutomaticPunctuation: true,
+                    maxAlternatives: 1,
+                    profanityFilter: false, // technical terms sometimes blocked
+                    speechContexts: [{
+                        phrases: [
+                            'AI', 'A.I.', 'A I', 'artificial intelligence',
+                            'AI agent', 'A.I. agent', 'AI agents',
+                            'LLM', 'large language model',
+                            'RAG', 'retrieval augmented generation',
+                            'vector database', 'vector store',
+                            'embeddings', 'embedding model',
+                            'transformer', 'attention mechanism',
+                            'fine-tuning', 'fine tune',
+                            'neural network', 'machine learning', 'deep learning',
+                            'API', 'REST API', 'microservices',
+                            'Kubernetes', 'Docker', 'containerization',
+                            'what is', 'explain', 'how does', 'describe',
+                        ],
+                        boost: 30
+                    }],
+                },
+                interimResults: true,
+            };
 
-            geminiWs.on('open', () => {
-                console.log('🚀  Gemini Live: Connection established');
-
-                // Native audio model REQUIRES audio output — we only use inputTranscription
-                const setupMessage = {
-                    setup: {
-                        model: "models/gemini-2.5-flash-native-audio-latest",
-                        generation_config: {
-                            response_modalities: ["AUDIO"],
-                            speech_config: {
-                                voice_config: {
-                                    prebuilt_voice_config: {
-                                        voice_name: "Puck"
-                                    }
-                                }
-                            }
-                        },
-                        system_instruction: {
-                            parts: [{
-                                text: "You are a professional transcription engine focused ONLY on English. Do NOT respond or speak. Just listen and transcribe the audio accurately into English text. Even if you hear technical terms like 'computer vision', transcribe them correctly in English."
-                            }]
-                        },
-                        input_audio_transcription: {}
+            recognizeStream = speechClient
+                .streamingRecognize(request)
+                .on('error', (err) => {
+                    console.error('❌  GCloud STT Error:', err.message);
+                    recognizeStream = null;
+                    isStarting = false;
+                    if (isClientConnected) {
+                        setTimeout(startStream, 500);
                     }
-                };
-
-                console.log('📤  Sending setup:', JSON.stringify(setupMessage));
-                geminiWs.send(JSON.stringify(setupMessage));
-            });
-
-            geminiWs.on('message', (data) => {
-                try {
-                    const response = JSON.parse(data.toString());
-
-                    if (response.setupComplete) {
-                        console.log('✅  Gemini Live: Setup complete');
-                        isSetup = true;
-                        ws.send(JSON.stringify({ type: 'ready' }));
-                        return;
-                    }
-
-                    // IGNORE modelTurn text/audio — we only care about inputTranscription
-                    // The actual answers come from the separate Gemini text model (gemini.js)
-
-                    // Input transcription
-                    if (response.serverContent?.inputTranscription?.text) {
+                })
+                .on('data', data => {
+                    const result = data.results[0];
+                    if (result && result.alternatives[0]) {
                         ws.send(JSON.stringify({
                             type: 'transcript',
-                            text: response.serverContent.inputTranscription.text,
-                            isFinal: !response.serverContent.inputTranscription.unstable,
-                            source: 'interviewer'
+                            text: result.alternatives[0].transcript,
+                            isFinal: result.isFinal,
+                            source: 'interviewer',
+                            confidence: result.alternatives[0].confidence || null
                         }));
+
+                        if (result.isFinal) {
+                            ws.send(JSON.stringify({ type: 'turn_complete' }));
+                        }
                     }
-
-                    if (response.serverContent?.turnComplete) {
-                        ws.send(JSON.stringify({ type: 'turn_complete' }));
+                })
+                .on('end', () => {
+                    console.log('♻  GCloud STT: Stream ended. Rebooting...');
+                    recognizeStream = null;
+                    isStarting = false; // Reset so next startStream() can proceed
+                    if (isClientConnected) {
+                        startStream();
                     }
+                });
 
-                } catch (err) {
-                    console.error('❌  Gemini Msg Parse Error:', err.message);
-                }
-            });
-
-            geminiWs.on('error', (err) => {
-                console.error('❌  Gemini Live Error:', err.message);
-                ws.send(JSON.stringify({ type: 'error', error: err.message }));
-            });
-
-            geminiWs.on('close', (code, reason) => {
-                console.log(`🔌  Gemini Live: Connection closed. Code: ${code}, Reason: ${reason || 'No reason'}`);
-                isSetup = false;
-                geminiWs = null;
-
-                if (code !== 1000) {
-                    console.log('🔄  Gemini Live: Attempting to reconnect in 2s...');
-                    setTimeout(() => {
-                        if (!geminiWs) connectToGemini();
-                    }, 2000);
-                }
-            });
+            isStarting = false; // Stream assigned, clear flag
         }
+
+        startStream();
 
         ws.on('message', (message) => {
             if (Buffer.isBuffer(message)) {
-                if (geminiWs && geminiWs.readyState === WebSocket.OPEN && isSetup) {
-                    const audioFrame = {
-                        realtime_input: {
-                            media_chunks: [{
-                                mime_type: "audio/pcm;rate=16000",
-                                data: message.toString('base64')
-                            }]
-                        }
-                    };
-                    geminiWs.send(JSON.stringify(audioFrame));
+                if (recognizeStream && recognizeStream.writable) {
+                    try {
+                        recognizeStream.write(message);
+                    } catch(e) {}
                 }
             } else {
                 try {
                     const data = JSON.parse(message.toString());
                     if (data.type === 'start') {
-                        if (!geminiWs) connectToGemini();
+                        if (!recognizeStream) startStream();
                     }
                     if (data.type === 'stop') {
-                        if (geminiWs) {
-                            geminiWs.close(1000);
-                            geminiWs = null;
+                        isClientConnected = false;
+                        if (recognizeStream) {
+                            recognizeStream.end();
+                            recognizeStream = null;
                         }
                     }
-                } catch (e) { /* ignore non-JSON */ }
+                } catch (e) {}
             }
         });
 
         ws.on('close', () => {
             console.log('🎙  Gateway: Client disconnected');
-            if (geminiWs) {
-                geminiWs.close(1000);
-                geminiWs = null;
+            isClientConnected = false;
+            if (recognizeStream) {
+                recognizeStream.end();
+                recognizeStream = null;
             }
         });
-
-        connectToGemini();
     });
 }
 
